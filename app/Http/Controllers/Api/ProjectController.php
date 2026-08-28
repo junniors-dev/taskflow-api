@@ -28,6 +28,7 @@ class ProjectController extends Controller
         // en un listado filtra la tabla entera de una sola vez; aqui no hay
         // forma de escribirlo mal.
         $projects = $request->user()->projects()
+            ->withCount('tasks')
             ->when(
                 $request->filled('search'),
                 fn ($query) => $query->where('name', 'like', '%'.$request->string('search').'%')
@@ -53,7 +54,7 @@ class ProjectController extends Controller
     {
         Gate::authorize('view', $project);
 
-        return ProjectResource::make($project);
+        return ProjectResource::make($project->loadCount('tasks'));
     }
 
     public function update(UpdateProjectRequest $request, Project $project): ProjectResource

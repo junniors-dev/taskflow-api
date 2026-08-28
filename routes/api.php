@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\ProjectController;
+use App\Http\Controllers\Api\TaskController;
+use App\Http\Controllers\Api\TaskStatusController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -45,4 +47,11 @@ Route::middleware('auth:sanctum')->group(function () {
     // apiResource omite create y edit, que solo tienen sentido en una
     // interfaz que necesita formularios.
     Route::apiResource('projects', ProjectController::class);
+
+    // shallow(): anidado donde el padre aporta informacion que la peticion
+    // necesita (listar y crear tareas de un proyecto) y aplanado donde no
+    // (ver, editar y borrar una tarea cuyo UUID ya es unico en el sistema).
+    Route::apiResource('projects.tasks', TaskController::class)->shallow();
+
+    Route::patch('tasks/{task}/status', TaskStatusController::class)->name('tasks.status');
 });
