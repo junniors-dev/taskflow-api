@@ -15,7 +15,8 @@ Es un Trello simplificado reducido a su contrato: usuarios, proyectos, tareas y 
 | Base de datos | MySQL / MariaDB |
 | Autenticación | Laravel Sanctum (tokens) |
 | Documentación | OpenAPI 3.0 vía `darkaonline/l5-swagger` + colección de Postman |
-| Pruebas | Pest 4 — 56 pruebas, 193 aserciones |
+| Pruebas | Pest 4 — 69 pruebas, 216 aserciones |
+| Análisis estático | Larastan (PHPStan) en **nivel 8** |
 | Estilo | Laravel Pint |
 
 ---
@@ -157,6 +158,7 @@ Un cliente debe poder programar contra los errores, no solo contra los aciertos.
 
 | Código | Cuándo |
 |---|---|
+| `400` | El cuerpo dice ser JSON pero no lo es |
 | `401` | Token ausente, inválido o revocado |
 | `403` | El recurso existe pero es de otra persona |
 | `404` | No existe, o fue borrado lógicamente |
@@ -201,22 +203,42 @@ El 422 es el único con estructura anidada:
 
 ---
 
-## Pruebas
+## Calidad
+
+Las tres comprobaciones de una vez:
 
 ```bash
-php artisan test
+composer check    # estilo + análisis estático + pruebas
 ```
 
-56 pruebas y 193 aserciones sobre la base `taskflow_api_test`. No hay objetivo de porcentaje de cobertura; el criterio es otro: **todo camino de autorización tiene una prueba que verifica que se deniega**. Una suite que solo prueba el camino feliz demuestra que la API funciona, no que es segura.
-
-Estilo de código:
+O por separado:
 
 ```bash
-vendor/bin/pint        # corrige
-vendor/bin/pint --test # solo verifica
+composer test      # 69 pruebas, 216 aserciones
+composer analyse   # Larastan en nivel 8
+composer lint      # Pint, solo verifica
+composer format    # Pint, corrige
 ```
 
-La integración continua (`.github/workflows/tests.yml`) levanta un servicio MariaDB y ejecuta `composer audit`, `pint --test` y la suite completa.
+### Pruebas
+
+Corren sobre la base `taskflow_api_test`, el mismo motor que desarrollo. No hay objetivo de porcentaje de cobertura; el criterio es otro: **todo camino de autorización tiene una prueba que verifica que se deniega**. Una suite que solo prueba el camino feliz demuestra que la API funciona, no que es segura.
+
+Hay tres suites: `Feature` (el contrato HTTP), `Arch` (invariantes de arquitectura) y `Unit`.
+
+Las pruebas de arquitectura fijan cosas que ninguna prueba funcional detectaría, porque no fallan al ejecutar sino al crecer: que no queden restos de depuración, que toda petición parta de `ApiFormRequest`, que toda respuesta pase por un API Resource, y que los modelos y las policies no conozcan la capa HTTP.
+
+También hay dos pruebas de regresión sobre problemas concretos: una cuenta las consultas del listado de tareas y falla si vuelve un N+1; otra comprueba que un JSON mal formado devuelve 400 y no un confuso 422.
+
+### Análisis estático
+
+Larastan en **nivel 8**, el máximo antes del modo estricto. Además de exigir tipos en todas partes, prohíbe llamar métodos sobre valores que puedan ser `null` — y eso obligó a un cambio real: dejar de asumir que `$request->user()` nunca es `null` solo porque el middleware lo garantice. Ahora `ApiFormRequest::authenticatedUser()` lo comprueba y lanza un 401 si falla, en vez de reventar con un 500 opaco el día que alguien quite el middleware de una ruta.
+
+Las pruebas quedan fuera del análisis a propósito: PHPStan no sabe modelar el enlace de `$this` dentro de las closures de Pest, y serían decenas de falsos positivos enterrando los hallazgos reales.
+
+### Integración continua
+
+`.github/workflows/tests.yml` levanta un servicio MariaDB y ejecuta `composer audit`, `pint --test`, `phpstan` y la suite completa.
 
 ---
 
@@ -227,7 +249,7 @@ app/
 ├── Enums/TaskStatus.php              Fuente única del estado de una tarea
 ├── Http/
 │   ├── Controllers/Api/              Controladores + anotaciones OpenAPI
-│   ├── Middleware/ForceJsonResponse  Fuerza JSON en todo el grupo api
+│   ├── Middleware/                   Fuerzan el contrato JSON en los bordes
 │   ├── Requests/                     Validación y autorización
 │   └── Resources/                    Contrato público + esquemas OpenAPI
 ├── Models/                           Project, Task, User

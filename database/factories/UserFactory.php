@@ -20,7 +20,9 @@ class UserFactory extends Factory
     /**
      * Define the model's default state.
      *
-     * @return array<string, mixed>
+     * Sin @return a proposito: la clase padre ya declara un tipo mas preciso
+     * (las claves son propiedades del modelo, no cualquier string), y repetirlo
+     * aqui con una firma mas laxa lo vuelve incompatible.
      */
     public function definition(): array
     {

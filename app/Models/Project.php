@@ -2,8 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +19,17 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * $request->user()->projects()->create(...), que lo asigna por la relacion.
  * Si estuviera aqui, bastaria con mandar user_id en el JSON para crear
  * proyectos a nombre de otra persona.
+ *
+ * @property string $id
+ * @property int $user_id
+ * @property string $name
+ * @property string|null $description
+ * @property CarbonInterface|null $created_at
+ * @property CarbonInterface|null $updated_at
+ * @property CarbonInterface|null $deleted_at
+ * @property-read int|null $tasks_count
+ * @property-read User|null $owner
+ * @property-read Collection<int, Task> $tasks
  */
 #[Fillable(['name', 'description'])]
 class Project extends Model

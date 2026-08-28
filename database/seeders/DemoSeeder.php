@@ -66,10 +66,10 @@ class DemoSeeder extends Seeder
         $this->tareasDelSitio($sitio, $demo, $otra);
         $this->tareasDeLaApp($app, $demo);
 
-        $this->command?->newLine();
-        $this->command?->info('Datos de demostracion listos.');
-        $this->command?->line('  Usuario: '.self::DEMO_EMAIL.'  /  '.self::PASSWORD);
-        $this->command?->line('  Otro:    '.self::OTRO_EMAIL.'  /  '.self::PASSWORD);
+        $this->command->newLine();
+        $this->command->info('Datos de demostracion listos.');
+        $this->command->line('  Usuario: '.self::DEMO_EMAIL.'  /  '.self::PASSWORD);
+        $this->command->line('  Otro:    '.self::OTRO_EMAIL.'  /  '.self::PASSWORD);
     }
 
     private function tareasDelSitio(Project $project, User $demo, User $otra): void

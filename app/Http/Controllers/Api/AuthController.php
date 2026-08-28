@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 use OpenApi\Attributes as OA;
 
 class AuthController extends Controller
@@ -115,7 +116,14 @@ class AuthController extends Controller
     public function logout(Request $request): Response
     {
         // Cerrar sesion en el movil no debe desconectar la del navegador.
-        $request->user()->currentAccessToken()->delete();
+        $token = $request->user()?->currentAccessToken();
+
+        // Solo se revoca lo que existe como fila. Cuando la peticion se
+        // autentica por cookie de sesion en vez de por token, Sanctum
+        // devuelve un TransientToken, que no tiene nada que borrar.
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
+        }
 
         return response()->noContent();
     }

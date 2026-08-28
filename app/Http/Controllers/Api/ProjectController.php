@@ -55,7 +55,7 @@ class ProjectController extends Controller
         // Project::query() con un filtro anadido despues. Un where olvidado
         // en un listado filtra la tabla entera de una sola vez; aqui no hay
         // forma de escribirlo mal.
-        $projects = $request->user()->projects()
+        $projects = $request->authenticatedUser()->projects()
             ->withCount('tasks')
             ->when(
                 $request->filled('search'),
@@ -97,7 +97,7 @@ class ProjectController extends Controller
     )]
     public function store(StoreProjectRequest $request): JsonResponse
     {
-        $project = $request->user()->projects()->create($request->validated());
+        $project = $request->authenticatedUser()->projects()->create($request->validated());
 
         return ProjectResource::make($project)
             ->response()

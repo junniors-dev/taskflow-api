@@ -56,6 +56,9 @@ jobs:
       - name: Verificar el estilo de codigo
         run: vendor/bin/pint --test
 
+      - name: Analisis estatico
+        run: vendor/bin/phpstan analyse --no-progress --memory-limit=1G
+
       - name: Ejecutar las pruebas
         run: php artisan test
         env:

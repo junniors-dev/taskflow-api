@@ -1,0 +1,20 @@
+includes:
+    - vendor/larastan/larastan/extension.neon
+
+parameters:
+    # Las pruebas quedan fuera a proposito. PHPStan no sabe modelar el enlace
+    # de $this dentro de las closures de Pest, asi que ve cada $this->getJson()
+    # como una llamada a un metodo inexistente de TestCall. Serian decenas de
+    # falsos positivos que enterrarian los hallazgos reales.
+    paths:
+        - app
+        - database
+        - routes
+
+    # Nivel 8, el maximo antes del modo estricto: ademas de exigir tipos en
+    # todas partes, prohibe llamar metodos sobre valores que puedan ser null.
+    # Eso obligo a dejar de asumir que $request->user() nunca es null solo
+    # porque el middleware lo garantice; ver App\Http\Requests\ApiFormRequest.
+    level: 8
+
+    checkModelProperties: true

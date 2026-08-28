@@ -2,10 +2,9 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class IndexProjectRequest extends FormRequest
+class IndexProjectRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {

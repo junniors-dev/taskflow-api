@@ -2,9 +2,7 @@
 
 namespace App\Http\Requests;
 
-use Illuminate\Foundation\Http\FormRequest;
-
-class UpdateProjectRequest extends FormRequest
+class UpdateProjectRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {
@@ -12,7 +10,7 @@ class UpdateProjectRequest extends FormRequest
         // ejecuta authorize() ANTES que las reglas de validacion. Asi, editar
         // un proyecto ajeno responde 403 y no un 422 detallando que esta mal
         // en un payload que el usuario nunca tuvo derecho a enviar.
-        return $this->user()->can('update', $this->route('project'));
+        return $this->authenticatedUser()->can('update', $this->route('project'));
     }
 
     /**

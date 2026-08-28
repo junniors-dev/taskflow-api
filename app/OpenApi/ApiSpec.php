@@ -27,6 +27,11 @@ use OpenApi\Attributes as OA;
     un recurso de otra persona devuelve 403; las tareas heredan el permiso del
     proyecto al que pertenecen.
 
+    **Errores.** Toda respuesta de error es JSON, tambien si olvidas la
+    cabecera `Accept`. Un cuerpo que dice ser JSON y no lo es devuelve 400 con
+    un mensaje explicito, en vez de tratarse como un cuerpo vacio y acabar en
+    un confuso "campo obligatorio".
+
     **Datos de prueba.** Tras `php artisan migrate:fresh --seed` existe el
     usuario `demo@taskflow.test` con la contrasena `contrasena-demo`, y un
     cuarto proyecto que pertenece a otra persona para poder comprobar el 403.

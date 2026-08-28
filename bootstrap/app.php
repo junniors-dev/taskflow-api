@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureJsonBodyIsValid;
 use App\Http\Middleware\ForceJsonResponse;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Application;
@@ -18,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->api(prepend: [
             ForceJsonResponse::class,
+            EnsureJsonBodyIsValid::class,
         ]);
 
         // Laravel 11+ no aplica limite de peticiones al grupo "api" por

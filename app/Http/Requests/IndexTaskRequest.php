@@ -3,14 +3,13 @@
 namespace App\Http\Requests;
 
 use App\Enums\TaskStatus;
-use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
-class IndexTaskRequest extends FormRequest
+class IndexTaskRequest extends ApiFormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()->can('view', $this->route('project'));
+        return $this->authenticatedUser()->can('view', $this->route('project'));
     }
 
     /**

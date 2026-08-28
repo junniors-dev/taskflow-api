@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\TaskStatus;
+use Carbon\CarbonInterface;
 use Database\Factories\TaskFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -15,6 +16,23 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * A diferencia de Project::$user_id, aqui "assigned_to" si es rellenable:
  * asignar una tarea es una accion legitima del usuario, no una suplantacion.
  * El proyecto al que pertenece, en cambio, lo fija la ruta anidada.
+ *
+ * Los @property de abajo no son decoracion: sin ellos, el analisis estatico
+ * ve $task->status como un string y no detecta que ->value es valido, ni que
+ * $task->due_date es un Carbon y no una cadena.
+ *
+ * @property string $id
+ * @property string $project_id
+ * @property int|null $assigned_to
+ * @property string $title
+ * @property string|null $description
+ * @property TaskStatus $status
+ * @property CarbonInterface|null $due_date
+ * @property CarbonInterface|null $created_at
+ * @property CarbonInterface|null $updated_at
+ * @property CarbonInterface|null $deleted_at
+ * @property-read Project|null $project
+ * @property-read User|null $assignee
  */
 #[Fillable(['title', 'description', 'status', 'due_date', 'assigned_to'])]
 class Task extends Model
