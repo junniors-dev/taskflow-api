@@ -1,5 +1,10 @@
 # TaskFlow API
 
+[![tests](https://github.com/junniors-dev/taskflow-api/actions/workflows/tests.yml/badge.svg)](https://github.com/junniors-dev/taskflow-api/actions/workflows/tests.yml)
+[![PHP 8.4](https://img.shields.io/badge/PHP-8.4-777BB4)](https://www.php.net/releases/8.4/en.php)
+[![Laravel 13](https://img.shields.io/badge/Laravel-13-FF2D20)](https://laravel.com)
+[![PHPStan nivel 8](https://img.shields.io/badge/PHPStan-nivel%208-2a5d8f)](https://phpstan.org)
+
 API REST de gestión de proyectos y tareas, construida en Laravel como **backend puro**: sin vistas, sin sesiones y sin nada que renderizar. Autenticación por tokens y documentación OpenAPI navegable, pensada para que la consuma cualquier cliente — una web, una app móvil o incluso un juego.
 
 Es un Trello simplificado reducido a su contrato: usuarios, proyectos, tareas y estados. Cada usuario solo ve y edita lo suyo.
@@ -15,7 +20,7 @@ Es un Trello simplificado reducido a su contrato: usuarios, proyectos, tareas y 
 | Base de datos | MySQL / MariaDB |
 | Autenticación | Laravel Sanctum (tokens) |
 | Documentación | OpenAPI 3.0 vía `darkaonline/l5-swagger` + colección de Postman |
-| Pruebas | Pest 4 — 69 pruebas, 216 aserciones |
+| Pruebas | Pest 4 — 71 pruebas, 219 aserciones |
 | Análisis estático | Larastan (PHPStan) en **nivel 8** |
 | Estilo | Laravel Pint |
 
@@ -214,7 +219,7 @@ composer check    # estilo + análisis estático + pruebas
 O por separado:
 
 ```bash
-composer test      # 69 pruebas, 216 aserciones
+composer test      # 71 pruebas, 219 aserciones
 composer analyse   # Larastan en nivel 8
 composer lint      # Pint, solo verifica
 composer format    # Pint, corrige
@@ -229,6 +234,8 @@ Hay tres suites: `Feature` (el contrato HTTP), `Arch` (invariantes de arquitectu
 Las pruebas de arquitectura fijan cosas que ninguna prueba funcional detectaría, porque no fallan al ejecutar sino al crecer: que no queden restos de depuración, que toda petición parta de `ApiFormRequest`, que toda respuesta pase por un API Resource, y que los modelos y las policies no conozcan la capa HTTP.
 
 También hay dos pruebas de regresión sobre problemas concretos: una cuenta las consultas del listado de tareas y falla si vuelve un N+1; otra comprueba que un JSON mal formado devuelve 400 y no un confuso 422.
+
+Y dos que **no comprueban endpoints concretos, sino que recorren las rutas registradas**: una verifica que ninguna ruta fuera de una lista pública corta carece de `auth:sanctum`; la otra sustituye los identificadores en cada ruta con `{project}` o `{task}` y comprueba que un usuario ajeno nunca recibe una respuesta correcta. La diferencia importa: una prueba escrita a mano cubre lo que existe hoy, estas cubren también la ruta que alguien añada dentro de seis meses y a la que se le olvide la policy.
 
 ### Análisis estático
 

@@ -9,3 +9,10 @@
 /.github export-ignore
 CHANGELOG.md export-ignore
 .styleci.yml export-ignore
+
+# Sin esto, GitHub cuenta estos ficheros en la barra de lenguajes del
+# repositorio y el proyecto aparece como si fuera mayoritariamente JSON.
+# El documento OpenAPI lo genera un comando; las vistas son del paquete.
+storage/api-docs/api-docs.json linguist-generated=true
+resources/views/vendor/** linguist-vendored=true
+postman/*.json -linguist-detectable
