@@ -1,58 +1,257 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# TaskFlow API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API REST de gestión de proyectos y tareas, construida en Laravel como **backend puro**: sin vistas, sin sesiones y sin nada que renderizar. Autenticación por tokens y documentación OpenAPI navegable, pensada para que la consuma cualquier cliente — una web, una app móvil o incluso un juego.
 
-## About Laravel
+Es un Trello simplificado reducido a su contrato: usuarios, proyectos, tareas y estados. Cada usuario solo ve y edita lo suyo.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+| | |
+|---|---|
+| PHP | 8.4 |
+| Laravel | 13 |
+| Base de datos | MySQL / MariaDB |
+| Autenticación | Laravel Sanctum (tokens) |
+| Documentación | OpenAPI 3.0 vía `darkaonline/l5-swagger` + colección de Postman |
+| Pruebas | Pest 4 — 56 pruebas, 193 aserciones |
+| Estilo | Laravel Pint |
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Instalación
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Necesitas PHP 8.3 o superior, Composer y un MySQL o MariaDB en marcha.
 
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone <url-del-repositorio> taskflow-api
+cd taskflow-api
+composer install
+cp .env.example .env
+php artisan key:generate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Crea las dos bases de datos — una para desarrollo y otra para las pruebas:
 
-## Contributing
+```sql
+CREATE DATABASE taskflow_api CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE taskflow_api_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Ajusta `DB_USERNAME` y `DB_PASSWORD` en el `.env` si tu servidor no usa `root` sin contraseña. Después:
 
-## Code of Conduct
+```bash
+php artisan migrate --seed
+php artisan serve
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+La API queda en `http://localhost:8000/api/v1`. Comprueba que responde:
 
-## Security Vulnerabilities
+```bash
+curl http://localhost:8000/api/v1/health
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### Datos de prueba
 
-## License
+El seeder deja dos usuarios, cuatro proyectos y diez tareas repartidas entre los tres estados, con vencimientos pasados, futuros y sin fecha.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+| Usuario | Contraseña | Para qué |
+|---|---|---|
+| `demo@taskflow.test` | `contrasena-demo` | El que vas a usar |
+| `otra@taskflow.test` | `contrasena-demo` | Tiene un proyecto propio, para comprobar el 403 |
+
+---
+
+## Documentación
+
+### Swagger
+
+Con el servidor levantado, abre **<http://localhost:8000/api/documentation>**. Es una interfaz navegable donde puedes probar cada endpoint desde el navegador: pulsa **Authorize**, pega el token que devuelve el login y ejecuta cualquier petición.
+
+El documento OpenAPI en crudo está en `http://localhost:8000/docs`. Para regenerarlo a mano:
+
+```bash
+php artisan l5-swagger:generate
+```
+
+Hay una prueba que regenera el documento y falla si alguna ruta registrada no está documentada. La documentación que se queda atrás del código es peor que no tener ninguna: promete un contrato que la API ya no cumple.
+
+### Postman
+
+En la carpeta `postman/` hay dos ficheros: la colección y un entorno.
+
+**1. Importar.** En Postman, `Import` → arrastra los dos ficheros de `postman/`.
+
+**2. Seleccionar el entorno.** Arriba a la derecha, elige *TaskFlow API — local*. Solo trae `base_url`; cámbialo si sirves la API en otro puerto.
+
+**3. Iniciar sesión.** Ejecuta **Autenticación → Iniciar sesión**. Su script guarda el token en la variable `token`, y el resto de la colección lo usa sola: **no tienes que copiar y pegar el token en ninguna petición**.
+
+**4. Trabajar.** **Proyectos → Crear proyecto** guarda el id en `project_id`, y **Tareas → Crear tarea** guarda `task_id`. Por eso las demás peticiones de esas carpetas funcionan sin que toques nada.
+
+**5. Ver el contrato de errores.** La carpeta **Errores esperados** demuestra el 401, el 403, el 404 y el 422. Sus dos primeras peticiones son de preparación: obtienen el id de un proyecto que pertenece a otra persona para poder pedirlo con tu token y recibir el 403.
+
+Las carpetas están **en orden de ejecución**: puedes darle a *Run* en el Collection Runner y recorrerla entera de arriba abajo. Cada petición lleva sus propias aserciones. Con Newman:
+
+```bash
+npx newman run postman/TaskFlow-API.postman_collection.json -e postman/TaskFlow-API.postman_environment.json
+```
+
+---
+
+## Endpoints
+
+Base: `http://localhost:8000/api/v1`. Todo salvo `/health`, `/auth/register` y `/auth/login` exige la cabecera `Authorization: Bearer <token>`.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| `GET` | `/health` | Estado de la aplicación y de la base de datos |
+| `POST` | `/auth/register` | Registro; devuelve el primer token |
+| `POST` | `/auth/login` | Emite un token nuevo |
+| `POST` | `/auth/logout` | Revoca **solo** el token usado |
+| `GET` | `/auth/me` | Usuario autenticado |
+| `GET` | `/projects` | Listado paginado. `?search=` `?sort=` `?per_page=` |
+| `POST` | `/projects` | Crea un proyecto |
+| `GET` | `/projects/{project}` | Detalle, con `tasks_count` |
+| `PATCH` | `/projects/{project}` | Actualización parcial |
+| `DELETE` | `/projects/{project}` | Borrado lógico; arrastra sus tareas |
+| `GET` | `/projects/{project}/tasks` | Tareas del proyecto. `?status=` `?assigned_to=` `?due_before=` `?due_after=` `?search=` `?sort=` `?per_page=` |
+| `POST` | `/projects/{project}/tasks` | Crea una tarea |
+| `GET` | `/tasks/{task}` | Detalle, con proyecto y asignado |
+| `PATCH` | `/tasks/{task}` | Actualización parcial |
+| `PATCH` | `/tasks/{task}/status` | Cambia solo el estado |
+| `DELETE` | `/tasks/{task}` | Borrado lógico |
+
+Estados de una tarea: `pending`, `in_progress`, `completed`.
+
+### Ejemplo
+
+```bash
+# Iniciar sesión
+curl -X POST http://localhost:8000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"demo@taskflow.test","password":"contrasena-demo"}'
+```
+
+```json
+{
+  "data": {
+    "user": { "id": 1, "name": "Usuario Demo", "email": "demo@taskflow.test" },
+    "token": "3|kR7pQ2mZ...",
+    "token_type": "Bearer"
+  }
+}
+```
+
+```bash
+# Listar las tareas en progreso de un proyecto
+curl "http://localhost:8000/api/v1/projects/{uuid}/tasks?status=in_progress" \
+  -H "Authorization: Bearer 3|kR7pQ2mZ..."
+```
+
+---
+
+## Contrato de errores
+
+Un cliente debe poder programar contra los errores, no solo contra los aciertos. Todos están cubiertos por pruebas.
+
+| Código | Cuándo |
+|---|---|
+| `401` | Token ausente, inválido o revocado |
+| `403` | El recurso existe pero es de otra persona |
+| `404` | No existe, o fue borrado lógicamente |
+| `405` | Método no permitido en esa ruta |
+| `422` | Falla de validación, en el cuerpo **o** en los parámetros de consulta |
+| `429` | Se superó el límite de peticiones |
+
+El 422 es el único con estructura anidada:
+
+```json
+{
+  "message": "The name field is required.",
+  "errors": { "name": ["The name field is required."] }
+}
+```
+
+---
+
+## Decisiones técnicas
+
+**Sanctum y no Passport.** Passport es un servidor OAuth2 completo, y eso solo se justifica cuando aplicaciones de **terceros** consumen tu API en nombre de tus usuarios. Aquí los clientes son propios, así que bastan los *personal access tokens*: un hash en una tabla, cero infraestructura extra.
+
+**API Resources y no modelos crudos.** Devolver un modelo Eloquent ata la forma de la respuesta al esquema de la base de datos: renombrar una columna rompería a cualquier app móvil ya publicada. El Resource decide qué sale, con qué nombre y en qué formato.
+
+**UUID v7 como identificador público.** Con enteros correlativos, `/projects/1` invita a recorrer `/projects/2` y además revela cuántos proyectos existen. Laravel genera UUID de versión 7, que llevan la marca de tiempo en los bits altos: importa porque un v4 puro inserta en posiciones aleatorias del índice de InnoDB y lo fragmenta.
+
+**Aislamiento en dos capas.** Los listados se construyen desde `$user->projects()`, nunca desde `Project::query()` filtrado después — un `where` olvidado en un listado no filtra un registro, filtra la tabla entera. Encima, cada acceso individual pasa por una Policy. Las tareas heredan el permiso del proyecto.
+
+**403 y no 404 para recursos ajenos.** Responder 404 ocultaría que el recurso existe, pero con UUID adivinar un id válido ya es inviable: el ocultamiento no aporta nada y el 403 le dice la verdad al cliente.
+
+**La autorización corre antes que la validación.** La comprobación de permisos vive en `authorize()` del FormRequest, que Laravel ejecuta antes de las reglas. Así, editar un recurso ajeno con datos inválidos devuelve 403 y no un 422 detallando qué está mal en un *payload* que el usuario nunca tuvo derecho a enviar. Hay una prueba que fija ese orden.
+
+**Rutas anidadas con `shallow()`.** `POST /projects/{project}/tasks` porque una tarea no existe sin proyecto, pero `GET /tasks/{task}` porque su UUID ya es único: pedir también el proyecto obligaría al cliente a arrastrar un dato que el servidor no necesita.
+
+**Enum de PHP sobre `varchar`, no `ENUM` de MySQL.** `App\Enums\TaskStatus` es la única fuente de verdad: alimenta el *cast* del modelo, la validación y el esquema OpenAPI. Añadir un cuarto estado a un `ENUM` de MySQL sería un `ALTER TABLE` que reconstruye la tabla; así es una línea.
+
+**El borrado lógico se propaga a mano.** El `ON DELETE CASCADE` es una restricción de MySQL que reacciona a un `DELETE`; un borrado lógico es un `UPDATE`, y la base no se entera. Sin un evento `deleting` en `Project`, las tareas de un proyecto borrado seguirían respondiendo 200, huérfanas de un padre que ya no existe.
+
+**Las pruebas corren sobre MySQL, no SQLite.** Es más lento, pero SQLite y MySQL difieren en tipos de fecha, modo estricto y comportamiento de las claves foráneas. Un test verde en un motor que no es el de producción prueba menos de lo que aparenta.
+
+**Rate limiting con clave compuesta.** El limitador de login combina email e IP: solo por IP castigaría a todos los usuarios detrás de una misma red, y solo por email permitiría bloquear la cuenta ajena a voluntad.
+
+---
+
+## Pruebas
+
+```bash
+php artisan test
+```
+
+56 pruebas y 193 aserciones sobre la base `taskflow_api_test`. No hay objetivo de porcentaje de cobertura; el criterio es otro: **todo camino de autorización tiene una prueba que verifica que se deniega**. Una suite que solo prueba el camino feliz demuestra que la API funciona, no que es segura.
+
+Estilo de código:
+
+```bash
+vendor/bin/pint        # corrige
+vendor/bin/pint --test # solo verifica
+```
+
+La integración continua (`.github/workflows/tests.yml`) levanta un servicio MariaDB y ejecuta `composer audit`, `pint --test` y la suite completa.
+
+---
+
+## Estructura
+
+```
+app/
+├── Enums/TaskStatus.php              Fuente única del estado de una tarea
+├── Http/
+│   ├── Controllers/Api/              Controladores + anotaciones OpenAPI
+│   ├── Middleware/ForceJsonResponse  Fuerza JSON en todo el grupo api
+│   ├── Requests/                     Validación y autorización
+│   └── Resources/                    Contrato público + esquemas OpenAPI
+├── Models/                           Project, Task, User
+├── OpenApi/ApiSpec.php               Bloque raíz del documento OpenAPI
+└── Policies/                         Reglas de propiedad
+bootstrap/app.php                     Rutas, middleware y contrato de errores
+postman/                              Colección y entorno
+```
+
+---
+
+## Fuera del alcance
+
+Decisiones tomadas, no olvidos:
+
+- **Colaboración multiusuario.** Un proyecto tiene un solo dueño. La tabla pivote `project_user` es la extensión natural, pero duplicaría la lógica de autorización sin demostrar ninguna técnica nueva.
+- **Restaurar lo borrado.** Restaurar un proyecto no devuelve sus tareas: hacerlo bien exigiría distinguir las que se borraron *con* él de las que ya lo estaban. La API no expone restauración en la v1.
+- **Refresh tokens.** Los tokens caducan a los siete días y se renuevan iniciando sesión. La rotación pertenece al mundo OAuth2.
+- **Interfaz de usuario.** Es el punto del proyecto.
+
+---
+
+## Autor
+
+**Junni Díaz** — [junnidiazp@gmail.com](mailto:junnidiazp@gmail.com)
+
+Licencia MIT.

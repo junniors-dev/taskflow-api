@@ -1,0 +1,464 @@
+{
+  "info": {
+    "name": "TaskFlow API",
+    "description": "API REST de gestion de proyectos y tareas.\n\n## Antes de empezar\n\n1. Siembra los datos de prueba: `php artisan migrate:fresh --seed`.\n2. Levanta la API: `php artisan serve`.\n\n## Como usarla\n\nLas carpetas estan **en orden de ejecucion**: puedes darle a Run en el Collection Runner y recorrerla entera de arriba abajo sin tocar nada. Cada peticion lleva sus propias aserciones.\n\nSi prefieres ir a mano, ejecuta primero **Autenticacion > Iniciar sesion**: su script guarda el token en la variable `token` y el resto de la coleccion lo usa automaticamente, sin copiar y pegar. Igual con **Crear proyecto** y **Crear tarea**, que guardan `project_id` y `task_id`.\n\nLa carpeta **Errores esperados** documenta el contrato de fallos: 401, 403, 404 y 422. Sus dos primeras peticiones son de preparacion: obtienen el id de un proyecto que pertenece a otra persona, para poder demostrar el 403.\n\n**Cierre** va al final a proposito: borra el proyecto y revoca el token, asi que ejecutarlo antes dejaria sin efecto al resto.\n\nCredenciales sembradas: `demo@taskflow.test` / `contrasena-demo`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "variable": [
+    { "key": "base_url", "value": "http://localhost:8000/api/v1" },
+    { "key": "token", "value": "" },
+    { "key": "otro_token", "value": "" },
+    { "key": "project_id", "value": "" },
+    { "key": "foreign_project_id", "value": "" },
+    { "key": "task_id", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Servicio",
+      "item": [
+        {
+          "name": "Estado de la API",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/health", "host": ["{{base_url}}"], "path": ["health"] },
+            "description": "Comprueba que la aplicacion y la base de datos responden. No necesita token."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Autenticacion",
+      "item": [
+        {
+          "name": "Registrarse",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('token', body.data.token);",
+                  "console.log('Token guardado en la variable token.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Persona Nueva\",\n  \"email\": \"{{$guid}}@taskflow.test\",\n  \"password\": \"contrasena-segura\",\n  \"password_confirmation\": \"contrasena-segura\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/register", "host": ["{{base_url}}"], "path": ["auth", "register"] },
+            "description": "Crea el usuario y devuelve su primer token. Limitado a 5 peticiones por minuto."
+          }
+        },
+        {
+          "name": "Iniciar sesion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.collectionVariables.set('token', body.data.token);",
+                  "console.log('Token guardado en la variable token.');"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"demo@taskflow.test\",\n  \"password\": \"contrasena-demo\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "description": "Empieza por aqui. El script de esta peticion guarda el token en la variable `token`, que el resto de la coleccion usa automaticamente."
+          }
+        },
+        {
+          "name": "Usuario actual",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/me", "host": ["{{base_url}}"], "path": ["auth", "me"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Proyectos",
+      "item": [
+        {
+          "name": "Listar proyectos",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/projects?per_page=15",
+              "host": ["{{base_url}}"],
+              "path": ["projects"],
+              "query": [
+                { "key": "search", "value": "Rediseno", "disabled": true },
+                { "key": "sort", "value": "-created_at", "disabled": true },
+                { "key": "per_page", "value": "15" },
+                { "key": "page", "value": "1", "disabled": true }
+              ]
+            },
+            "description": "Solo devuelve los proyectos del usuario del token. Los parametros deshabilitados se activan con la casilla."
+          }
+        },
+        {
+          "name": "Crear proyecto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.test('devuelve la cabecera Location', () => pm.response.to.have.header('Location'));",
+                  "pm.collectionVariables.set('project_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Rediseno del sitio\",\n  \"description\": \"Landing nueva para el lanzamiento\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/projects", "host": ["{{base_url}}"], "path": ["projects"] },
+            "description": "El dueno sale del token. Enviar `user_id` en el cuerpo no tiene ningun efecto: pruebalo."
+          }
+        },
+        {
+          "name": "Ver proyecto",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/projects/{{project_id}}", "host": ["{{base_url}}"], "path": ["projects", "{{project_id}}"] },
+            "description": "Incluye `tasks_count`."
+          }
+        },
+        {
+          "name": "Actualizar proyecto",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"Rediseno del sitio v2\"\n}" },
+            "url": { "raw": "{{base_url}}/projects/{{project_id}}", "host": ["{{base_url}}"], "path": ["projects", "{{project_id}}"] },
+            "description": "Actualizacion parcial: los campos omitidos se quedan como estaban."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tareas",
+      "item": [
+        {
+          "name": "Listar tareas del proyecto",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/projects/{{project_id}}/tasks",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "{{project_id}}", "tasks"],
+              "query": [
+                { "key": "status", "value": "in_progress", "disabled": true },
+                { "key": "assigned_to", "value": "1", "disabled": true },
+                { "key": "due_before", "value": "2026-12-31", "disabled": true },
+                { "key": "due_after", "value": "2026-01-01", "disabled": true },
+                { "key": "search", "value": "logo", "disabled": true },
+                { "key": "sort", "value": "due_date", "disabled": true },
+                { "key": "per_page", "value": "15", "disabled": true }
+              ]
+            },
+            "description": "Ruta anidada. Un filtro con un valor invalido devuelve 422, no una lista vacia."
+          }
+        },
+        {
+          "name": "Crear tarea",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('201 Created', () => pm.response.to.have.status(201));",
+                  "pm.collectionVariables.set('task_id', pm.response.json().data.id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Disenar el logo\",\n  \"description\": \"Tres propuestas\",\n  \"due_date\": \"2026-09-15\"\n}"
+            },
+            "url": { "raw": "{{base_url}}/projects/{{project_id}}/tasks", "host": ["{{base_url}}"], "path": ["projects", "{{project_id}}", "tasks"] },
+            "description": "Si omites `status`, la tarea nace como `pending`."
+          }
+        },
+        {
+          "name": "Ver tarea",
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/tasks/{{task_id}}", "host": ["{{base_url}}"], "path": ["tasks", "{{task_id}}"] },
+            "description": "Ruta aplanada: el UUID de la tarea ya es unico, asi que no hace falta repetir el proyecto en la URL."
+          }
+        },
+        {
+          "name": "Actualizar tarea",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"title\": \"Disenar el logo (v2)\",\n  \"assigned_to\": 1\n}" },
+            "url": { "raw": "{{base_url}}/tasks/{{task_id}}", "host": ["{{base_url}}"], "path": ["tasks", "{{task_id}}"] }
+          }
+        },
+        {
+          "name": "Cambiar el estado",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"status\": \"in_progress\"\n}" },
+            "url": { "raw": "{{base_url}}/tasks/{{task_id}}/status", "host": ["{{base_url}}"], "path": ["tasks", "{{task_id}}", "status"] },
+            "description": "Endpoint dedicado al gesto de mover una tarjeta entre columnas. Acepta solo `status`."
+          }
+        },
+        {
+          "name": "Borrar tarea",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/tasks/{{task_id}}", "host": ["{{base_url}}"], "path": ["tasks", "{{task_id}}"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Errores esperados",
+      "description": "El contrato de fallos tambien es parte de la API. Estas peticiones lo demuestran.",
+      "item": [
+        {
+          "name": "Preparar 1 · Iniciar sesion como la otra persona",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('200 OK', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('otro_token', pm.response.json().data.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"otra@taskflow.test\",\n  \"password\": \"contrasena-demo\"\n}" },
+            "url": { "raw": "{{base_url}}/auth/login", "host": ["{{base_url}}"], "path": ["auth", "login"] },
+            "description": "Guarda el token de la otra persona en `otro_token`. No pisa tu token."
+          }
+        },
+        {
+          "name": "Preparar 2 · Obtener un proyecto suyo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const proyectos = pm.response.json().data;",
+                  "pm.test('tiene al menos un proyecto', () => pm.expect(proyectos).to.be.an('array').that.is.not.empty);",
+                  "pm.collectionVariables.set('foreign_project_id', proyectos[0].id);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{otro_token}}", "type": "string" }] },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/projects", "host": ["{{base_url}}"], "path": ["projects"] },
+            "description": "Usa el token de la otra persona para quedarse con el id de uno de sus proyectos."
+          }
+        },
+        {
+          "name": "403 · Proyecto de otra persona",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('403 Forbidden', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/projects/{{foreign_project_id}}", "host": ["{{base_url}}"], "path": ["projects", "{{foreign_project_id}}"] },
+            "description": "Con TU token, pidiendo el proyecto de otra persona. Devuelve 403 y no 404: con UUID, adivinar un id valido es inviable, asi que ocultar la existencia del recurso no aportaria nada y el 403 dice la verdad."
+          }
+        },
+        {
+          "name": "401 · Sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"]
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/me", "host": ["{{base_url}}"], "path": ["auth", "me"] }
+          }
+        },
+        {
+          "name": "404 · UUID inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('404 Not Found', () => pm.response.to.have.status(404));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": {
+              "raw": "{{base_url}}/projects/01a00000-0000-7000-8000-000000000000",
+              "host": ["{{base_url}}"],
+              "path": ["projects", "01a00000-0000-7000-8000-000000000000"]
+            }
+          }
+        },
+        {
+          "name": "422 · Proyecto sin nombre",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('422 Unprocessable', () => pm.response.to.have.status(422));",
+                  "pm.test('detalla el campo que falla', () => pm.expect(pm.response.json().errors).to.have.property('name'));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Accept", "value": "application/json" }
+            ],
+            "body": { "mode": "raw", "raw": "{\n  \"description\": \"Un proyecto sin nombre\"\n}" },
+            "url": { "raw": "{{base_url}}/projects", "host": ["{{base_url}}"], "path": ["projects"] },
+            "description": "El unico cuerpo de error con estructura anidada: `message` mas `errors` campo por campo."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Cierre",
+      "description": "Va al final a proposito: borrar el proyecto dejaria sin objetivo a la carpeta de Tareas, y cerrar sesion revocaria el token que usan todas las peticiones anteriores.",
+      "item": [
+        {
+          "name": "Borrar proyecto",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/projects/{{project_id}}", "host": ["{{base_url}}"], "path": ["projects", "{{project_id}}"] },
+            "description": "Borrado logico. Arrastra las tareas del proyecto: despues de esto, sus tareas responden 404."
+          }
+        },
+        {
+          "name": "Cerrar sesion",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Accept", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/auth/logout", "host": ["{{base_url}}"], "path": ["auth", "logout"] },
+            "description": "Revoca unicamente el token de esta peticion. Cerrar sesion en el movil no desconecta la del navegador."
+          }
+        }
+      ]
+    }
+  ]
+}
