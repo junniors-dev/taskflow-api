@@ -1,0 +1,7 @@
+Git no versiona directorios vacios, y phpunit.xml declara una suite que
+apunta aqui. Sin este fichero, un clon limpio no tiene tests/Unit y la suite
+falla con "Test directory not found" — que es justo lo que rompio el primer
+build de CI.
+
+Se conserva la suite en vez de borrarla porque quitarla haria que una prueba
+unitaria anadida en el futuro no se ejecutara sin que nadie se enterase.
