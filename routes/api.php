@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\ProjectController;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
 
@@ -38,4 +39,10 @@ Route::prefix('auth')->name('auth.')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
         Route::get('/me', [AuthController::class, 'me'])->name('me');
     });
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    // apiResource omite create y edit, que solo tienen sentido en una
+    // interfaz que necesita formularios.
+    Route::apiResource('projects', ProjectController::class);
 });
