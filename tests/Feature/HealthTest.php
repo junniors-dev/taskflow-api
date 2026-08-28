@@ -1,23 +1,23 @@
 <?php
 
-namespace Tests\Feature;
+it('reporta que la aplicacion y la base de datos responden', function () {
+    $this->getJson('/api/v1/health')
+        ->assertOk()
+        ->assertJson(['status' => 'ok', 'database' => 'up'])
+        ->assertJsonStructure(['status', 'database', 'time']);
+});
 
-use Tests\TestCase;
+it('responde una ruta inexistente en json y sin traza', function () {
+    // assertExactJson es deliberado: comprueba que la respuesta trae el
+    // mensaje y nada mas. Por defecto, con APP_DEBUG activo, Laravel adjunta
+    // la traza completa con rutas absolutas del servidor.
+    $this->getJson('/api/v1/no-existe')
+        ->assertNotFound()
+        ->assertExactJson(['message' => 'The requested endpoint does not exist.']);
+});
 
-class HealthTest extends TestCase
-{
-    public function test_reports_the_api_and_database_are_up(): void
-    {
-        $this->getJson('/api/v1/health')
-            ->assertOk()
-            ->assertJson(['status' => 'ok', 'database' => 'up'])
-            ->assertJsonStructure(['status', 'database', 'time']);
-    }
-
-    public function test_unknown_route_returns_json_not_html(): void
-    {
-        $this->getJson('/api/v1/no-existe')
-            ->assertNotFound()
-            ->assertHeader('content-type', 'application/json');
-    }
-}
+it('rechaza un metodo http no soportado', function () {
+    $this->deleteJson('/api/v1/health')
+        ->assertStatus(405)
+        ->assertExactJson(['message' => 'The HTTP method is not supported for this endpoint.']);
+});
